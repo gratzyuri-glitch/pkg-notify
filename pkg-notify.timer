@@ -1,5 +1,5 @@
 [Unit]
-Description=Run update-check.sh regularly
+Description=Run pkg-notify.sh regularly
 
 [Timer]
 # Runs 15 min after login, then every hour

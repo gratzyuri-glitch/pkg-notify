@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# update-check.sh — checks for pending pacman + AUR (paru/yay) updates
+# pkg-notify.sh — checks for pending pacman + AUR (paru/yay) updates
 # and pops a persistent KDE Plasma notification. Distinguishes real
 # failures (no network, missing tools, command errors, timeouts) from
 # a genuine "no updates" result, so a broken check never looks the
@@ -25,15 +25,15 @@ AUR_TIMEOUT=120           # seconds — AUR RPC lookups can be slow with many fo
 # --- logging ---
 # Writes straight to a plain text file and truncates itself once it
 # passes ~10MB — no logrotate, no extra services, just a size check.
-LOG_FILE="$HOME/.local/share/update-check.log"
+LOG_FILE="$HOME/.local/share/pkg-notify.log"
 MAX_LOG_BYTES=$((10 * 1024 * 1024))  # 10MB
 
 LOG_DIR="$(dirname "$LOG_FILE")"
 if ! mkdir -p "$LOG_DIR" 2>/dev/null || [[ ! -w "$LOG_DIR" ]]; then
     # Logging isn't set up yet, so this one failure gets a direct
     # notify-send instead of going through send_notify/the log.
-    notify-send -u critical -a "Update Check" -t 0 \
-        "Update check failed" "Cannot write to $LOG_DIR — check permissions." 2>/dev/null
+    notify-send -u critical -a "Pkg Notify" -t 0 \
+        "Pkg notify failed" "Cannot write to $LOG_DIR — check permissions." 2>/dev/null
     exit 1
 fi
 
@@ -48,8 +48,8 @@ fi
 # stdout/stderr into it. A writable directory does not guarantee an
 # existing log file is itself writable.
 if ! touch "$LOG_FILE" 2>/dev/null || [[ ! -w "$LOG_FILE" ]]; then
-    notify-send -u critical -a "Update Check" -t 0 \
-        "Update check failed" "Cannot write to $LOG_FILE — check permissions." 2>/dev/null
+    notify-send -u critical -a "Pkg Notify" -t 0 \
+        "Pkg notify failed" "Cannot write to $LOG_FILE — check permissions." 2>/dev/null
     exit 1
 fi
 
@@ -60,7 +60,7 @@ echo "--- $(date '+%Y-%m-%d %H:%M:%S') ---"
 # Prevents overlapping runs (e.g. a slow network causing one invocation
 # to still be running when the next timer fire happens) from racing on
 # the log file and spamming duplicate notifications.
-LOCK_FILE="$HOME/.local/share/update-check.lock"
+LOCK_FILE="$HOME/.local/share/pkg-notify.lock"
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
     echo "Another instance is already running — exiting."
@@ -69,7 +69,7 @@ fi
 
 # --- icons ---
 # Use a theme icon name (e.g. "emblem-checked") or an absolute path
-# to your own image, e.g. "$HOME/.local/share/icons/update-check/ok.png"
+# to your own image, e.g. "$HOME/.local/share/icons/pkg-notify/ok.png"
 ICON_OK="emblem-checked"          # green tick — no updates
 ICON_UPDATES="emblem-important"   # red alert — updates found
 ICON_ERROR="dialog-error"         # check itself failed
@@ -82,13 +82,13 @@ ICON_ERROR="dialog-error"         # check itself failed
 send_notify() {
     # usage: send_notify icon urgency timeout_ms title body [replace_id]
     # Always returns 0 — notification failures must never change the
-    # update-check result. stderr is captured in the log.
+    # pkg-notify result. stderr is captured in the log.
     local notify_output notify_rc replace_id="${6:-}"
 
     if [[ -n "$replace_id" ]]; then
-        notify_output="$(notify-send -i "$1" -a "Update Check" -u "$2" -t "$3" -r "$replace_id" "$4" "$5" 2>&1)"
+        notify_output="$(notify-send -i "$1" -a "Pkg Notify" -u "$2" -t "$3" -r "$replace_id" "$4" "$5" 2>&1)"
     else
-        notify_output="$(notify-send -i "$1" -a "Update Check" -u "$2" -t "$3" "$4" "$5" 2>&1)"
+        notify_output="$(notify-send -i "$1" -a "Pkg Notify" -u "$2" -t "$3" "$4" "$5" 2>&1)"
     fi
     notify_rc=$?
 
@@ -105,7 +105,7 @@ NOTIFY_ID_ERROR=1002
 
 notify_error() {
     echo "ERROR: $1"
-    send_notify "$ICON_ERROR" critical 0 "Update check failed" "$1" "$NOTIFY_ID_ERROR"
+    send_notify "$ICON_ERROR" critical 0 "Pkg notify failed" "$1" "$NOTIFY_ID_ERROR"
 }
 
 # --- 2. make sure the tools we need actually exist ---

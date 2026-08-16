@@ -1,4 +1,4 @@
-# update-check
+# pkg-notify
 
 A lightweight Arch Linux update checker that monitors both official repositories and the AUR, then sends KDE Plasma desktop notifications when updates are available.
 
