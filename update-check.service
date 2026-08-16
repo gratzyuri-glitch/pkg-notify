@@ -1,0 +1,6 @@
+[Unit]
+Description=Check for pacman and AUR updates
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/update-check.sh
