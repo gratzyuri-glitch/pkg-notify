@@ -1,8 +1,8 @@
 [Unit]
-Description=Run pkg-notify.sh regularly
+Description=Run pkg-notify regularly
 
 [Timer]
-# Runs 15 min after login, then every hour
+# Runs 2 minutes after login, then every 30 minutes
 OnBootSec=2m
 OnUnitActiveSec=30m
 Persistent=true

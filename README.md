@@ -32,22 +32,49 @@ A lightweight Arch Linux package update checker that runs automatically with a s
 - `libnotify`
 - `coreutils`
 - `util-linux`
+- `gawk`
 - One of:
   - `paru`
   - `yay`
 - KDE Plasma or another desktop environment providing `notify-send`
 
-Install the required packages with:
+## Installation
+
+Install from the AUR with:
 
 ```bash
-sudo pacman -S pacman-contrib libnotify
+paru -S pkg-notify
+```
+
+or:
+
+```bash
+yay -S pkg-notify
+```
+
+After installation, enable and start the user timer:
+
+```bash
+systemctl --user enable --now pkg-notify.timer
+```
+
+Check its status with:
+
+```bash
+systemctl --user status pkg-notify.timer
+```
+
+To run a check immediately:
+
+```bash
+systemctl --user start pkg-notify.service
 ```
 
 ## How it works
 
-The package checker is run by a **systemd user timer**, so it can check for updates automatically in the background without requiring a system-wide service or root privileges.
+The package checker is run by a **systemd user timer**, so it checks for updates automatically in the background without requiring a system-wide service or root privileges.
 
-When updates are found, `pkg-notify` sends a persistent desktop notification. The notification remains on screen until you dismiss it.
+When updates are found, `pkg-notify` sends a persistent desktop notification. The notification remains visible until you dismiss it.
 
 If no updates are available, a normal notification is shown briefly and then disappears automatically.
 
@@ -67,15 +94,15 @@ The log is automatically truncated when it reaches approximately 10 MB.
 
 ## systemd
 
-`pkg-notify` uses a user service and timer:
+`pkg-notify` installs:
 
 ```text
-pkg-notify.service
-pkg-notify.timer
+/usr/lib/systemd/user/pkg-notify.service
+/usr/lib/systemd/user/pkg-notify.timer
 ```
 
-The service runs the checker, while the timer controls how often it is run.
+The service runs the checker, while the timer runs it 2 minutes after login and then every 30 minutes.
 
 ## License
 
-See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
