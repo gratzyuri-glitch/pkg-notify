@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# update-check.sh — checks for pending pacman + AUR (paru) updates
+# update-check.sh — checks for pending pacman + AUR (paru/yay) updates
 # and pops a persistent KDE Plasma notification. Distinguishes real
 # failures (no network, missing tools, command errors, timeouts) from
 # a genuine "no updates" result, so a broken check never looks the
@@ -8,7 +8,7 @@
 #
 # Requirements:
 #   sudo pacman -S pacman-contrib   # provides `checkupdates`
-#   paru must be installed
+#   paru OR yay must be installed
 #   flock, timeout, mktemp          # util-linux / coreutils, standard on Arch
 #
 set -uo pipefail
@@ -48,7 +48,8 @@ fi
 # stdout/stderr into it. A writable directory does not guarantee an
 # existing log file is itself writable.
 if ! touch "$LOG_FILE" 2>/dev/null || [[ ! -w "$LOG_FILE" ]]; then
-    notify-send -u critical -a "Update Check" -t 0         "Update check failed" "Cannot write to $LOG_FILE — check permissions." 2>/dev/null
+    notify-send -u critical -a "Update Check" -t 0 \
+        "Update check failed" "Cannot write to $LOG_FILE — check permissions." 2>/dev/null
     exit 1
 fi
 
@@ -113,8 +114,13 @@ if ! command -v checkupdates >/dev/null 2>&1; then
     exit 1
 fi
 
-if ! command -v paru >/dev/null 2>&1; then
-    notify_error "paru not found."
+# Prefer paru when available, otherwise use yay.
+if command -v paru >/dev/null 2>&1; then
+    AUR_HELPER="paru"
+elif command -v yay >/dev/null 2>&1; then
+    AUR_HELPER="yay"
+else
+    notify_error "Neither paru nor yay was found."
     exit 1
 fi
 
@@ -149,24 +155,25 @@ fi
 # exit code 2 = ran fine, just nothing to update — official_count stays 0
 
 # --- 4. AUR updates ---
-# A single call captures both stdout and stderr. Do not use paru's exit
-# status to mean "updates found": paru can return non-zero when there are
-# simply no AUR updates. An empty stdout result is the reliable indication
-# of no updates; stderr/non-zero is still treated as a genuine failure.
+# A single call captures both stdout and stderr. Do not use paru/yay's exit
+# status to mean "updates found": the helper can return non-zero when there
+# are simply no AUR updates. An empty stdout result is the reliable
+# indication of no updates; stderr/non-zero is still treated as a genuine
+# failure.
 : > "$tmp_err"
-aur_updates="$(timeout "$AUR_TIMEOUT" paru -Qua 2>"$tmp_err")"
+aur_updates="$(timeout "$AUR_TIMEOUT" "$AUR_HELPER" -Qua 2>"$tmp_err")"
 aur_exit=$?
 aur_err="$(<"$tmp_err")"
 aur_count=0
 
 if [[ $aur_exit -eq 124 ]]; then
-    notify_error "paru timed out checking AUR updates after ${AUR_TIMEOUT}s."
+    notify_error "$AUR_HELPER timed out checking AUR updates after ${AUR_TIMEOUT}s."
     exit 1
 elif [[ $aur_exit -ne 0 ]]; then
     if [[ -n "$aur_updates" ]]; then
         aur_count=$(printf '%s\n' "$aur_updates" | awk 'END { print NR }')
     elif [[ -n "$aur_err" ]]; then
-        notify_error "paru failed to check AUR updates.${aur_err:+ ($aur_err)}"
+        notify_error "$AUR_HELPER failed to check AUR updates.${aur_err:+ ($aur_err)}"
         exit 1
     fi
 elif [[ -n "$aur_updates" ]]; then
