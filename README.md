@@ -1,5 +1,7 @@
 # pkg-notify
 
+<img width="1536" height="1024" alt="93386286-2573-4804-b9e9-361b8b38954a" src="https://github.com/user-attachments/assets/1844e744-4fb8-41db-a9fd-5d575571bd5b" />
+
 A lightweight Arch Linux package update checker that runs automatically with a systemd user timer and sends desktop notifications when updates are available.
 
 `pkg-notify` checks both the official Arch Linux repositories and the AUR. It supports both `paru` and `yay`, preferring `paru` when both are installed.
